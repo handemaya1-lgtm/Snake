@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snake Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  background:#0b3d0b;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+h1{margin:10px;}
+.panel{margin:8px;}
+button{
+  padding:8px 14px;
+  margin:4px;
+  border:none;
+  border-radius:6px;
+  background:#2ecc71;
+  font-weight:bold;
+}
+canvas{
+  border:4px solid darkgreen;
+  box-shadow:0 0 15px lime;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🐍 Snake Game</h1>
+
+<div class="panel">
+  <button onclick="startGame()">Start</button>
+  <button onclick="resetGame()">Reset</button>
+  Score: <b id="score">0</b>
+  High: <b id="high">0</b>
+</div>
+
+<canvas id="gc" width="400" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("gc");
+const ctx = canvas.getContext("2d");
+
+const tileCount = 20;
+const gridSize = canvas.width / tileCount;
+
+let snake = [{x:10,y:10}];
+let velocity = {x:0,y:0};
+let apple = {x:5,y:5};
+let score = 0;
+let highScore = localStorage.getItem("snakeHigh") || 0;
+let interval;
+
+document.getElementById("high").innerText = highScore;
+
+function resetGame(){
+  snake = [{x:10,y:10}];
+  velocity = {x:0,y:0};
+  score = 0;
+  placeApple();
+  document.getElementById("score").innerText = score;
+}
+
+function startGame(){
+  clearInterval(interval);
+  interval = setInterval(gameLoop,120);
+}
+
+function placeApple(){
+  apple.x = Math.floor(Math.random()*tileCount);
+  apple.y = Math.floor(Math.random()*tileCount);
+}
+
+function gameLoop(){
+  // 🌿 grass background
+  ctx.fillStyle="#7CFC90";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // move snake
+  const head={
+    x:snake[snake.length-1].x+velocity.x,
+    y:snake[snake.length-1].y+velocity.y
+  };
+
+  // wall wrap
+  if(head.x<0) head.x=tileCount-1;
+  if(head.y<0) head.y=tileCount-1;
+  if(head.x>=tileCount) head.x=0;
+  if(head.y>=tileCount) head.y=0;
+
+  snake.push(head);
+
+  // eat apple
+  if(head.x===apple.x && head.y===apple.y){
+    score++;
+    document.getElementById("score").innerText=score;
+
+    if(score>highScore){
+      highScore=score;
+      localStorage.setItem("snakeHigh",highScore);
+      document.getElementById("high").innerText=highScore;
+    }
+    placeApple();
+  } else {
+    snake.shift();
+  }
+
+  // self collision
+  for(let i=0;i<snake.length-1;i++){
+    if(snake[i].x===head.x && snake[i].y===head.y){
+      alert("Game Over! Score: "+score);
+      resetGame();
+      return;
+    }
+  }
+
+  // 🐍 draw snake
+  for(let i=0;i<snake.length;i++){
+    let p=snake[i];
+    let x=p.x*gridSize;
+    let y=p.y*gridSize;
+
+    if(i===snake.length-1){
+      ctx.fillStyle="#2ecc71";
+      ctx.fillRect(x+1,y+1,gridSize-2,gridSize-2);
+
+      // eyes
+      ctx.fillStyle="black";
+      ctx.fillRect(x+6,y+6,4,4);
+      ctx.fillRect(x+gridSize-14,y+6,4,4);
+    } else {
+      ctx.fillStyle="#27ae60";
+      ctx.fillRect(x+1,y+1,gridSize-2,gridSize-2);
+    }
+  }
+
+  // 🍎 apple
+  let ax=apple.x*gridSize+gridSize/2;
+  let ay=apple.y*gridSize+gridSize/2;
+  let r=gridSize/2-2;
+
+  ctx.fillStyle="red";
+  ctx.beginPath();
+  ctx.arc(ax,ay,r,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle="rgba(255,255,255,0.6)";
+  ctx.beginPath();
+  ctx.arc(ax-3,ay-3,r/4,0,Math.PI*2);
+  ctx.fill();
+}
+
+// keyboard
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowUp") velocity={x:0,y:-1};
+  if(e.key==="ArrowDown") velocity={x:0,y:1};
+  if(e.key==="ArrowLeft") velocity={x:-1,y:0};
+  if(e.key==="ArrowRight") velocity={x:1,y:0};
+});
+
+// mobile swipe
+let sx=0,sy=0;
+canvas.addEventListener("touchstart",e=>{
+  sx=e.touches[0].clientX;
+  sy=e.touches[0].clientY;
+});
+canvas.addEventListener("touchend",e=>{
+  let dx=e.changedTouches[0].clientX-sx;
+  let dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)>Math.abs(dy))
+    dx>0?velocity={x:1,y:0}:velocity={x:-1,y:0};
+  else
+    dy>0?velocity={x:0,y:1}:velocity={x:0,y:-1};
+});
+
+resetGame();
+</script>
+
+</body>
+</html>
